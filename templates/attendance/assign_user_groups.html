@@ -1,0 +1,50 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Assign Groups - SGA-Lite{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Assign Groups</h1>
+    <p class="text-gray-600 mb-8">User: <strong>{{ user.get_full_name|default:user.username }}</strong></p>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-3">Select Groups</label>
+                {% if all_groups %}
+                <div class="space-y-2">
+                    {% for group in all_groups %}
+                    <div class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <input type="checkbox" id="group_{{ group.id }}" name="groups" value="{{ group.id }}" 
+                               {% if group.id in user_group_ids %}checked{% endif %}
+                               class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <div class="ml-3 flex-1">
+                            <label for="group_{{ group.id }}" class="block text-sm font-medium text-gray-900 cursor-pointer">
+                                {{ group.name }}
+                            </label>
+                            <p class="text-xs text-gray-500">{{ group.get_allowed_days_display }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-6 text-gray-500">
+                    <p>No groups available. <a href="{% url 'create_group' %}" class="text-indigo-600 hover:text-indigo-900">Create a group first</a></p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="flex justify-end gap-4">
+                <a href="{% url 'manage_users' %}" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    Save Assignments
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

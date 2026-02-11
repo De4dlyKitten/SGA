@@ -1,0 +1,141 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Employee Dashboard - SGA-Lite{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Current Date/Time Card -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-6 text-center" x-data="{ time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }" x-init="setInterval(() => time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }), 1000)">
+        <h2 class="text-3xl font-bold text-gray-800 mb-2">{{ today|date:"l, F d, Y" }}</h2>
+        <p class="text-5xl font-bold text-indigo-600" x-text="time"></p>
+    </div>
+    
+    <!-- Clock In/Out Card -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+        <h3 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Time Clock</h3>
+        
+        {% if not is_allowed_today %}
+            <!-- Not Allowed Today -->
+            <div class="text-center py-12">
+                <svg class="mx-auto h-24 w-24 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                <h4 class="text-xl font-semibold text-gray-700 mb-2">Not Scheduled Today</h4>
+                <p class="text-gray-600">You are not scheduled to work on {{ today|date:"l" }}.</p>
+                <p class="text-sm text-gray-500 mt-2">Contact your administrator if you believe this is an error.</p>
+            </div>
+        {% else %}
+            <!-- Status Display -->
+            <div class="mb-8 text-center">
+                {% if today_log and today_log.is_complete %}
+                    <div class="inline-flex items-center px-6 py-3 bg-green-100 text-green-800 rounded-full">
+                        <svg class="h-6 w-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="font-semibold">Workday Complete</span>
+                    </div>
+                    <div class="mt-4 text-gray-700">
+                        <p>Check In: <strong>{{ today_log.check_in|time:"g:i A" }}</strong></p>
+                        <p>Check Out: <strong>{{ today_log.check_out|time:"g:i A" }}</strong></p>
+                        <p class="mt-2 text-lg">Total Hours: <strong class="text-indigo-600">{{ today_log.get_total_hours_display }}</strong></p>
+                    </div>
+                {% elif today_log and today_log.is_active %}
+                    <div class="inline-flex items-center px-6 py-3 bg-yellow-100 text-yellow-800 rounded-full animate-pulse">
+                        <svg class="h-6 w-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="font-semibold">Currently Working</span>
+                    </div>
+                    <div class="mt-4 text-gray-700">
+                        <p>Clocked in at: <strong>{{ today_log.check_in|time:"g:i A" }}</strong></p>
+                    </div>
+                {% else %}
+                    <div class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-800 rounded-full">
+                        <svg class="h-6 w-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="font-semibold">Ready to Clock In</span>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex justify-center gap-4">
+                {% if can_check_in %}
+                    <form method="post" action="{% url 'clock_in' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="px-12 py-6 bg-green-600 text-white text-2xl font-bold rounded-lg hover:bg-green-700 transition duration-200 shadow-lg">
+                            CLOCK IN
+                        </button>
+                    </form>
+                {% elif can_check_out %}
+                    <form method="post" action="{% url 'clock_out' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="px-12 py-6 bg-red-600 text-white text-2xl font-bold rounded-lg hover:bg-red-700 transition duration-200 shadow-lg">
+                            CLOCK OUT
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endif %}
+        
+        <!-- Allowed Groups Info -->
+        {% if user_groups %}
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <h4 class="text-sm font-semibold text-gray-700 mb-2">Your Schedule Groups:</h4>
+            <div class="flex flex-wrap gap-2">
+                {% for ug in user_groups %}
+                <span class="inline-flex items-center px-3 py-1 bg-indigo-100 text-indigo-800 text-sm rounded-full">
+                    {{ ug.group.name }}
+                    <span class="ml-2 text-xs text-indigo-600">({{ ug.group.get_allowed_days_display }})</span>
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Recent History -->
+    {% if recent_logs %}
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4">Recent Activity</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for log in recent_logs %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ log.date|date:"M d, Y" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ log.check_in|time:"g:i A"|default:"—" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ log.check_out|time:"g:i A"|default:"—" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {% if log.is_complete %}
+                                <span class="text-green-600 font-semibold">{{ log.get_total_hours_display }}</span>
+                            {% elif log.is_active %}
+                                <span class="text-yellow-600">In Progress</span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
